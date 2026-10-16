@@ -284,11 +284,11 @@ void CBaseHudWeaponSelection::OnWeaponPickup( C_BaseCombatWeapon *pWeapon )
 //------------------------------------------------------------------------
 void CBaseHudWeaponSelection::UserCmd_Slot1(void)
 {
-	if( HUDTYPE_CAROUSEL == hud_fastswitch.GetInt() )
+	/*if (HUDTYPE_CAROUSEL == hud_fastswitch.GetInt())
 	{
 		UserCmd_LastWeapon();
 	}
-	else
+	else*/
 	{
 		SelectSlot( 1 );
 	}
@@ -296,11 +296,11 @@ void CBaseHudWeaponSelection::UserCmd_Slot1(void)
 
 void CBaseHudWeaponSelection::UserCmd_Slot2(void)
 {
-	if( HUDTYPE_CAROUSEL == hud_fastswitch.GetInt() )
+	/*if (HUDTYPE_CAROUSEL == hud_fastswitch.GetInt())
 	{
 		UserCmd_NextWeapon();
 	}
-	else
+	else*/
 	{
 		SelectSlot( 2 );
 	}
@@ -308,11 +308,11 @@ void CBaseHudWeaponSelection::UserCmd_Slot2(void)
 
 void CBaseHudWeaponSelection::UserCmd_Slot3(void)
 {
-	if( HUDTYPE_CAROUSEL == hud_fastswitch.GetInt() )
+	/*if (HUDTYPE_CAROUSEL == hud_fastswitch.GetInt())
 	{
 		engine->ClientCmd( "phys_swap" );
 	}
-	else
+	else*/
 	{
 		SelectSlot( 3 );
 	}
@@ -320,11 +320,11 @@ void CBaseHudWeaponSelection::UserCmd_Slot3(void)
 
 void CBaseHudWeaponSelection::UserCmd_Slot4(void)
 {
-	if( HUDTYPE_CAROUSEL == hud_fastswitch.GetInt() )
+	/*if (HUDTYPE_CAROUSEL == hud_fastswitch.GetInt())
 	{
 		UserCmd_PrevWeapon();
 	}
-	else
+	else*/
 	{
 		SelectSlot( 4 );
 	}
@@ -421,6 +421,10 @@ void CBaseHudWeaponSelection::SelectSlot( int iSlot )
 
 	UpdateSelectionTime();
 	SelectWeaponSlot( iSlot );
+	if (hud_fastswitch.GetInt() > 0)
+	{
+		SelectWeapon();
+	}
 }
 
 //-----------------------------------------------------------------------------

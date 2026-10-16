@@ -38,7 +38,7 @@ ConVar hud_showemptyweaponslots( "hud_showemptyweaponslots", "1", FCVAR_ARCHIVE,
 #define CAROUSEL_SMALL_DISPLAY_ALPHA	200.0f
 #define FASTSWITCH_SMALL_DISPLAY_ALPHA	160.0f
 
-#define MAX_CAROUSEL_SLOTS				5
+#define MAX_CAROUSEL_SLOTS				6
 
 //-----------------------------------------------------------------------------
 // Purpose: hl2 weapon selection hud element
@@ -89,6 +89,8 @@ protected:
 		switch( hud_fastswitch.GetInt() )
 		{
 		case HUDTYPE_FASTSWITCH:
+			ActivateWeaponHighlight(GetSelectedWeapon());
+			break;
 		case HUDTYPE_CAROUSEL:
 			ActivateFastswitchWeaponDisplay( GetSelectedWeapon() );
 			break;
@@ -1349,6 +1351,8 @@ void CHudWeaponSelection::FastWeaponSwitch( int iWeaponSlot )
 	{
 		// select the new weapon
 		::input->MakeWeaponSelection( pNextWeapon );
+		pPlayer->EmitSound("Player.WeaponSelectionClose");
+		SetSelectedWeapon(pNextWeapon);
 	}
 	else if ( pNextWeapon != pActiveWeapon )
 	{
@@ -1539,8 +1543,17 @@ void CHudWeaponSelection::SelectWeaponSlot( int iSlot )
 	switch( hud_fastswitch.GetInt() )
 	{
 	case HUDTYPE_FASTSWITCH:
+		{	
+			FastWeaponSwitch(iSlot);
+			return;
+		}
 	case HUDTYPE_CAROUSEL:
 		{
+			if ( !IsInSelectionMode() )
+			{
+				// open the weapon selection
+				OpenSelection();
+			}
 			FastWeaponSwitch( iSlot );
 			return;
 		}
