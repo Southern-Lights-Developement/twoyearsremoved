@@ -5387,6 +5387,7 @@ void CBasePlayer::Spawn( void )
 	UpdateLastKnownArea();
 
 	m_weaponFiredTimer.Invalidate();
+	m_Local.m_bWearingSuit = true;
 }
 
 void CBasePlayer::Activate( void )
@@ -9547,7 +9548,8 @@ void CBasePlayer::EquipSuit( bool bPlayEffects )
 
 void CBasePlayer::RemoveSuit( void )
 {
-	m_Local.m_bWearingSuit = false;
+	//Do not ever remove the suit
+	//m_Local.m_bWearingSuit = false;
 }
 
 //-----------------------------------------------------------------------------

@@ -395,7 +395,7 @@ void CFlechette::FlechetteTouch(CBaseEntity* pOther)
 			// Set up our larger explosion!
 			m_stuckEnemy = true;
 		}
-		else if (((pOther->GetMoveType() == MOVETYPE_VPHYSICS) || (pOther->GetMoveType() == MOVETYPE_PUSH)) && ((pOther->GetHealth() > 0) || (pOther->m_takedamage == DAMAGE_EVENTS_ONLY)))
+		else if (((pOther->GetHealth() > 0) || (pOther->m_takedamage == DAMAGE_EVENTS_ONLY)))
 		{
 			CPhysicsProp* pProp = dynamic_cast<CPhysicsProp*>(pOther);
 			if (pProp)
@@ -428,6 +428,11 @@ void CFlechette::FlechetteTouch(CBaseEntity* pOther)
 		{
 			// We hit a func_breakable, stick to it.
 			// The MOVETYPE_PUSH is a micro-optimization to cut down on the classname checks.
+			StickTo(pOther, tr);
+		}
+		else if (pOther->GetSolid() == SOLID_BSP || (pOther->GetSolid() == SOLID_VPHYSICS) && !(tr.surface.flags & SURF_SKY))
+		{
+			// We hit something, which we should stick to. Otherwise, the grenade might disappear without doing anything. No good!
 			StickTo(pOther, tr);
 		}
 		else
