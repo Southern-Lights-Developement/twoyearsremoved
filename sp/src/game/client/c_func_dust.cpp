@@ -19,6 +19,7 @@
 #include "tier0/memdbgon.h"
 
 IMPLEMENT_CLIENTCLASS_DT_NOBASE( C_Func_Dust, DT_Func_Dust, CFunc_Dust )
+	RecvPropString(RECVINFO(m_MaterialName)),
 	RecvPropInt( RECVINFO(m_Color) ),
 	RecvPropInt( RECVINFO(m_SpawnRate) ),
 	RecvPropFloat( RECVINFO(m_flSizeMin) ),
@@ -160,7 +161,7 @@ void C_Func_Dust::OnDataChanged( DataUpdateType_t updateType )
 
 	if( updateType == DATA_UPDATE_CREATED )
 	{
-		m_hMaterial = m_Effect.GetPMaterial( "particle/sparkles" );
+		m_hMaterial = m_Effect.GetPMaterial(m_MaterialName);
 
 		m_Effect.SetSortOrigin( WorldSpaceCenter( ) );
 

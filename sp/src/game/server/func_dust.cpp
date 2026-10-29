@@ -43,6 +43,9 @@ public:
 // FGD properties.
 public:
 
+	CNetworkString(m_MaterialName, 255);
+	string_t m_String_tMaterialName;
+
 	CNetworkVar( color32, m_Color );
 	CNetworkVar( int, m_SpawnRate );
 	
@@ -83,6 +86,7 @@ public:
 };
 
 IMPLEMENT_SERVERCLASS_ST_NOBASE( CFunc_Dust, DT_Func_Dust )
+	SendPropString(SENDINFO(m_MaterialName)),
 	SendPropInt( SENDINFO(m_Color),	32, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_SpawnRate),	12, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_SpeedMax),	12, SPROP_UNSIGNED ),
@@ -103,6 +107,7 @@ BEGIN_DATADESC( CFunc_Dust )
 
 	DEFINE_FIELD( m_DustFlags,FIELD_INTEGER ),
 
+	DEFINE_KEYFIELD(m_String_tMaterialName, FIELD_STRING, "Material"),
 	DEFINE_KEYFIELD( m_Color,		FIELD_COLOR32,	"Color" ),
 	DEFINE_KEYFIELD( m_SpawnRate,	FIELD_INTEGER,	"SpawnRate" ),
 	DEFINE_KEYFIELD( m_flSizeMin,	FIELD_FLOAT,	"SizeMin" ),
@@ -171,12 +176,13 @@ void CFunc_Dust::Spawn()
 
 void CFunc_Dust::Precache()
 {
-	PrecacheMaterial( "particle/sparkles" );
+	PrecacheMaterial(m_MaterialName);
 }
 
 void CFunc_Dust::Activate()
 {
 	BaseClass::Activate();
+	Q_strncpy(m_MaterialName.GetForModify(), STRING(m_String_tMaterialName), 255);
 }
 
 

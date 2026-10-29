@@ -75,7 +75,7 @@ private:
 
 // Vars from server.
 public:
-
+	char m_MaterialName[255];
 	color32			m_Color;
 	int				m_SpawnRate;
 	
