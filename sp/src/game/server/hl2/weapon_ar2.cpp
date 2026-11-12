@@ -368,6 +368,7 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 {
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
 	CBaseEntity* pEntity = NULL;
+	CBaseEntity* pEntityTarget = NULL;
 
 	if (pPlayer == NULL)
 		return;
@@ -391,6 +392,8 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 		float hitDot = DotProduct(tr.plane.normal, vecHello);
 		Vector vReflection = -2.0f * tr.plane.normal * hitDot + vecHello;
 		vReflection.NormalizeInPlace();
+
+		//Setup for our search
 		Vector targetDest = tr.endpos;
 		float goal = 1025.0;
 		Vector eGoal;
@@ -399,29 +402,38 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 
 		for (CEntitySphereQuery sphere(vecSrc, 1024.0); (pEntity = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity())
 		{
+			//TODO: Don't check for certain "unimportant" NPCs that are still flagged as enemies, so we don't eat up shots
 			if (!pEntity->IsNPC())
 				continue;
 			if (pEntity->Classify() == CLASS_PLAYER_ALLY)
+				continue;
+			//Don't allow us to ricochet onto the same thing we just hit
+			if (pEntity = pEntityTarget)
 				continue;
 
 			Vector eOrigin = pEntity->GetAbsOrigin();
 			float dist = (eOrigin.DistTo(tr.endpos));
 
+			//TODO: Might be some edge cases where the trace line is hitting something, but the NPC is still "visible". May not be a problem
 			UTIL_TraceLine(eOrigin, tr.endpos, MASK_SHOT, pEntity, COLLISION_GROUP_NONE, &tr_los);
 			if (tr_los.DidHit())
 				continue;
 
+			//TODO: Worth looking forward in the future if biasing the ricochet towards enemy heads would be useful for easier difficulties
 			if (dist < goal)
 			{
 				eGoal = eOrigin;
 				goal = dist;
+				pEntityTarget = pEntity;
 			}
 		}
 
 		if (goal < 1025.0)
+		{
 			targetDest = eGoal;
+			pEntityTarget->EmitSound("FX_RicochetSound.Ricochet");
+		}
 
-		DevMsg("%f\n", goal);
 		pPlayer->FireBullets(1, targetDest, vReflection, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 40, NULL, true, false);
 		
 		UTIL_TraceLine(targetDest, vReflection* MAX_TRACE_LENGTH + tr.endpos, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, & tr);
@@ -431,11 +443,6 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 
 		VectorAngles(tr.endpos, hack);
 		DispatchParticleEffect("piercer_tracer", tr.startpos, targetDest, hack);
-
-		DevMsg("Hit dot: %f\n", hitDot);
-		DevMsg("We hit: %f %f %f\n", tr.endpos.x, tr.endpos.y, tr.endpos.z );
-		DevMsg("We go: %f %f %f\n", vReflection.x, vReflection.y, vReflection.z);
-		DevMsg("%f\n", tr.fraction);
 
 		vecHello = vReflection;
 	}
