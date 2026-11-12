@@ -27,6 +27,7 @@
 #include "npc_combine.h"
 #include "rumble_shared.h"
 #include "gamestats.h"
+#include "particle_parse.h"
 
 #ifdef MAPBASE
 #include "npc_playercompanion.h"
@@ -327,7 +328,7 @@ void CWeaponAR2::DelayedAttack( void )
 
 	// Fire the bullets
 	Vector	vecSrcOwner = pOwner->Weapon_ShootPosition();
-	PierceShot(vecSrcOwner, true);
+	PierceShot(vecSrcOwner);
 
 	// Fire the combine ball
 	//CreateCombineBall(	vecSrc, 
@@ -363,107 +364,80 @@ void CWeaponAR2::DelayedAttack( void )
 	m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
 }
 
-void CWeaponAR2::PierceShot(Vector& vecSrc, bool FirstShot )
+void CWeaponAR2::PierceShot(Vector& vecSrc)
 {
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	CBaseEntity* pEntity = NULL;
 
 	if (pPlayer == NULL)
 		return;
 
-	Vector	vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
-	Vector	vecLooking = pPlayer->Weapon_ShootPosition();
+	Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
+	Vector vecLooking = pPlayer->Weapon_ShootPosition();
 	//int iAttachment = GetTracerAttachment();
-	//Vector vMuzzle;
-	//QAngle angles;
-	//GetAttachment(LookupAttachment("muzzle"), vMuzzle, NULL);
-	//AngleVectors(angles, &vMuzzle);
 
-	if (FirstShot == true)
+	int RicochetCount = 3;
+	pPlayer->FireBullets(1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 40, NULL, true, false);
+	Vector	vecAimingEnd = vecLooking + (vecAiming * MAX_TRACE_LENGTH);
+	trace_t tr;
+	UTIL_TraceLine(vecLooking, vecAimingEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr);
+	UTIL_ParticleTracer("piercer_tracer", vecLooking, tr.endpos, entindex(), 1, true);
+	Vector vecHello = tr.endpos - tr.startpos;
+	vecHello.NormalizeInPlace();
+	
+
+	for (int r = 0; r < RicochetCount; r++)
 	{
-		Msg("PERFORMING FIRST SHOT\n");
-		pPlayer->FireBullets(1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 40, NULL, true, false);
+		float hitDot = DotProduct(tr.plane.normal, vecHello);
+		Vector vReflection = -2.0f * tr.plane.normal * hitDot + vecHello;
+		vReflection.NormalizeInPlace();
+		Vector targetDest = tr.endpos;
+		float goal = 1025.0;
+		Vector eGoal;
 
-		Vector	vecAimingEnd = vecLooking + (vecAiming * MAX_TRACE_LENGTH);
-		//Vector vFinal = vecLooking + vMuzzle;
+		trace_t tr_los;
+
+		for (CEntitySphereQuery sphere(vecSrc, 1024.0); (pEntity = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity())
+		{
+			if (!pEntity->IsNPC())
+				continue;
+			if (pEntity->Classify() == CLASS_PLAYER_ALLY)
+				continue;
+
+			Vector eOrigin = pEntity->GetAbsOrigin();
+			float dist = (eOrigin.DistTo(tr.endpos));
+
+			UTIL_TraceLine(eOrigin, tr.endpos, MASK_SHOT, pEntity, COLLISION_GROUP_NONE, &tr_los);
+			if (tr_los.DidHit())
+				continue;
+
+			if (dist < goal)
+			{
+				eGoal = eOrigin;
+				goal = dist;
+			}
+		}
+
+		if (goal < 1025.0)
+			targetDest = eGoal;
+
+		DevMsg("%f\n", goal);
+		pPlayer->FireBullets(1, targetDest, vReflection, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 40, NULL, true, false);
 		
-		trace_t tr;
-		UTIL_TraceLine(vecLooking, vecAimingEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr);
+		UTIL_TraceLine(targetDest, vReflection* MAX_TRACE_LENGTH + tr.endpos, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, & tr);
+		//UTIL_ParticleTracer("piercer_tracer", tr.startpos, tr.endpos, 0, NULL, true);
 
-		UTIL_ParticleTracer("piercer_tracer", vecLooking, tr.endpos, entindex(), 1, true);
-		DevMsg("vecLooking: <%f, %f, %f>\n", vecLooking.x, vecLooking.y, vecLooking.z);
-		//DevMsg("vMuzzle: <%f, %f, %f>\n", vMuzzle.x, vMuzzle.y, vMuzzle.z);
+		QAngle hack;
 
-		if (tr.m_pEnt)
-		{
-			if (tr.m_pEnt->IsNPC() || tr.m_pEnt->VPhysicsGetObject() || tr.m_pEnt->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS || (tr.surface.flags & SURF_SKY) == false)
-			{
-				Vector vecCursor = tr.endpos;
-				vecCursor += vecAiming * 4;
+		VectorAngles(tr.endpos, hack);
+		DispatchParticleEffect("piercer_tracer", tr.startpos, targetDest, hack);
 
-				if (UTIL_PointContents(vecCursor) != CONTENTS_SOLID)
-				{
-					// Passed through the entity
-					PierceShot(vecCursor, false);
-					Msg("PASSED THROUGH\n");
-				}
-				else
-				{
-					Msg("PASS THROUGH SOLID\n");
-					return;
-				}
-			}
-			else
-			{
-				Msg("INVALID SURFACE\n");
-				return;
-				
-			}
-		}
-		else
-		{
-			Msg("SOLID SURFACE OR INVALID\n");
-			return;
-		}
-	}
-	else
-	{
-		Msg("PERFORMING SECOND SHOT\n");
-		Vector	vecAimingEnd = vecLooking + (vecAiming * MAX_TRACE_LENGTH);
-		trace_t tr2;
-		UTIL_ParticleTracer("piercer_tracer", vecSrc, tr2.endpos, entindex(), 0, true);
-		UTIL_TraceLine(vecSrc, vecAimingEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr2);
-		pPlayer->FireBullets(1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 40, NULL, true, false);
+		DevMsg("Hit dot: %f\n", hitDot);
+		DevMsg("We hit: %f %f %f\n", tr.endpos.x, tr.endpos.y, tr.endpos.z );
+		DevMsg("We go: %f %f %f\n", vReflection.x, vReflection.y, vReflection.z);
+		DevMsg("%f\n", tr.fraction);
 
-		if (tr2.m_pEnt)
-		{
-			if (tr2.m_pEnt->IsNPC() || tr2.m_pEnt->VPhysicsGetObject() || tr2.m_pEnt->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
-			{
-				Vector vecCursor = tr2.endpos;
-				vecCursor += vecAiming * 32;
-
-				if (UTIL_PointContents(vecCursor) != CONTENTS_SOLID)
-				{
-					// Passed through the entity
-					Msg("PASSED THROUGH\n");
-					PierceShot(vecCursor, false);
-				}
-				else
-				{
-					Msg("PASS THROUGH SOLID\n");
-					return;
-				}
-			}
-			else
-			{
-				Msg("INVALID SURFACE\n");
-				return;
-			}
-		}
-		else
-		{
-			Msg("SOLID SURFACE OR INVALID\n");
-			return;
-		}
+		vecHello = vReflection;
 	}
 }
 

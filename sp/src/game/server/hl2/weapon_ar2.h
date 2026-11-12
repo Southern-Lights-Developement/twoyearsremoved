@@ -31,7 +31,7 @@ public:
 	
 	void	SecondaryAttack( void );
 	void	DelayedAttack( void );
-	void	PierceShot(Vector& vecSr, bool FirstShot );
+	void	PierceShot(Vector& vecSr);
 
 	const char *GetTracerType( void ) { return "AR2Tracer"; }
 
