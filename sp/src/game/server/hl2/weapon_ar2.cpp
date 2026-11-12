@@ -385,7 +385,6 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 	UTIL_ParticleTracer("piercer_tracer", vecLooking, tr.endpos, entindex(), 1, true);
 	Vector vecHello = tr.endpos - tr.startpos;
 	vecHello.NormalizeInPlace();
-	
 
 	for (int r = 0; r < RicochetCount; r++)
 	{
@@ -408,7 +407,7 @@ void CWeaponAR2::PierceShot(Vector& vecSrc)
 			if (pEntity->Classify() == CLASS_PLAYER_ALLY)
 				continue;
 			//Don't allow us to ricochet onto the same thing we just hit
-			if (pEntity = pEntityTarget)
+			if (pEntity == pEntityTarget)
 				continue;
 
 			Vector eOrigin = pEntity->GetAbsOrigin();
